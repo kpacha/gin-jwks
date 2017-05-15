@@ -19,7 +19,7 @@ func TestToHTTPContext(t *testing.T) {
 			t.Error("The token is not in the context")
 			return
 		}
-		token, ok := tok.(jwks.Token)
+		token, ok := tok.([]byte)
 		if !ok {
 			t.Error("The stored data is not a token")
 			return
@@ -117,7 +117,7 @@ func TestAuth_ok(t *testing.T) {
 	token := "something"
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
-		c.Set(JWTTokenContextKey, jwks.Token(token))
+		c.Set(JWTTokenContextKey, []byte(token))
 		c.Next()
 	})
 	expectedClaims := jwks.Claims{"aaa": "aaa"}

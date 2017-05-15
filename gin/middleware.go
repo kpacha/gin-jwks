@@ -30,7 +30,7 @@ func ToHTTPContextWithKey(tokenKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tok := c.Request.Header.Get("Authorization")
 		if len(tok) > 6 && strings.ToUpper(tok[0:7]) == "BEARER " {
-			c.Set(tokenKey, jwks.Token(tok[7:]))
+			c.Set(tokenKey, []byte(tok[7:]))
 		}
 		c.Next()
 	}
@@ -51,13 +51,13 @@ func AuthWithKeys(verifier jwks.Verifier, tokenKey, claimsKey string) gin.Handle
 			c.AbortWithError(http.StatusUnauthorized, ErrUnableToExtractToken)
 			return
 		}
-		token, ok := tok.(jwks.Token)
+		token, ok := tok.([]byte)
 		if !ok {
 			c.AbortWithError(http.StatusUnauthorized, ErrUnableToExtractToken)
 			return
 		}
 		claims := jwks.Claims{}
-		if err := verifier(token, &claims); err != nil {
+		if err := verifier(jwks.Token(token), &claims); err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
