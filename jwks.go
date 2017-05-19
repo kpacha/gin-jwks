@@ -47,6 +47,9 @@ func ErrorVerifier(_ Token, _ *Claims) error { return ErrUnverifiedMsg }
 
 // Chain is a verifier that chains a set of verifiers, executing them with a FIFO strategy
 func Chain(verifiers []Verifier) Verifier {
+	if len(verifiers) == 0 {
+		return ErrorVerifier
+	}
 	return func(tok Token, claims *Claims) error {
 		for _, verifier := range verifiers {
 			if err := verifier(tok, claims); err != nil {

@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+func TestChainVerfier_empty(t *testing.T) {
+	verifier := Chain([]Verifier{})
+	if err := verifier([]byte{}, &Claims{}); err != ErrUnverifiedMsg {
+		t.Error("unexpected error. got:", err)
+		return
+	}
+}
+
 func TestChainVerfier_ko(t *testing.T) {
 	var counter uint64
 	v := func(tok Token, c *Claims) error {
