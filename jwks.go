@@ -53,11 +53,12 @@ func Chain(verifiers []Verifier) Verifier {
 		return ErrorVerifier
 	}
 	return func(tok Token, claims *Claims) error {
+		var err error
 		for _, verifier := range verifiers {
-			if err := verifier(tok, claims); err != nil {
-				return err
+			if err = verifier(tok, claims); err == nil {
+				return nil
 			}
 		}
-		return nil
+		return err
 	}
 }

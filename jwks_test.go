@@ -17,7 +17,7 @@ func TestChainVerfier_ko(t *testing.T) {
 	var counter uint64
 	v := func(tok Token, c *Claims) error {
 		atomic.AddUint64(&counter, 1)
-		return NoopVerifier(tok, c)
+		return ErrorVerifier(tok, c)
 	}
 	verifier := Chain([]Verifier{v, v, v, ErrorVerifier})
 	if err := verifier([]byte{}, &Claims{}); err != ErrUnverifiedMsg {
@@ -31,11 +31,15 @@ func TestChainVerfier_ko(t *testing.T) {
 
 func TestChainVerfier_ok(t *testing.T) {
 	var counter uint64
-	v := func(tok Token, c *Claims) error {
+	vKo := func(tok Token, c *Claims) error {
+		atomic.AddUint64(&counter, 1)
+		return ErrorVerifier(tok, c)
+	}
+	vOk := func(tok Token, c *Claims) error {
 		atomic.AddUint64(&counter, 1)
 		return NoopVerifier(tok, c)
 	}
-	verifier := Chain([]Verifier{v, v, v})
+	verifier := Chain([]Verifier{vKo, vKo, vOk})
 	if err := verifier([]byte{}, &Claims{}); err != nil {
 		t.Error("unexpected error. got:", err.Error())
 		return
