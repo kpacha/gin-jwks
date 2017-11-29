@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -14,6 +15,7 @@ import (
 func main() {
 	jwkPath := flag.String("path", "", "path to the JWK file")
 	issuer := flag.String("iss", "", "issuer of the JWT")
+	secret := flag.String("secret", "", "comma-separated list of HMAC secrets")
 	flag.Parse()
 
 	if *jwkPath == "" {
@@ -26,17 +28,21 @@ func main() {
 		return
 	}
 
-	verifier, err := jwks.RS256(*jwkPath, *issuer)
+	rsaVerifier, err := jwks.RS256(*jwkPath, *issuer)
 	if err != nil {
 		log.Println("Error:", err.Error())
 		return
 	}
-	hmacVerifier := jwks.HS256Verifier([]byte(*secret), *issuer)
+	verifiers := []jwks.Verifier{rsaVerifier}
+
+	for _, key := range strings.Split(*secret, ",") {
+		verifiers = append(verifiers, jwks.HS256Verifier([]byte(key), *issuer))
+	}
 
 	router := gin.Default()
 
 	router.Use(ginjwks.ToHTTPContext())
-	router.Use(ginjwks.Auth(Chain([]Verifier{verifier, hmacVerifier}))
+	router.Use(ginjwks.Auth(jwks.Chain(verifiers)))
 
 	router.GET("/", func(c *gin.Context) {
 		t, ok := c.Get(ginjwks.JWTTokenContextKey)
