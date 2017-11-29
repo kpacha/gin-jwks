@@ -23,12 +23,14 @@ type (
 
 	// Verifier is a function that verifies the received token and stores the verified claims in the passed Claims
 	Verifier func(tok Token, claims *Claims) error
-	// JWSVerifier is a function that verifies the received token against a public key
-	JWSVerifier func(tok Token, publicKey *rsa.PublicKey) ([]byte, error)
+	// JWSVerifier is a function that verifies the received token
+	JWSVerifier func(tok Token) ([]byte, error)
+	// RSAVerifier is a function that verifies the received token against a public key
+	RSAVerifier func(tok Token, publicKey *rsa.PublicKey) ([]byte, error)
 	// JWKFetcher is a function that fetches the JWK set from the received path
 	JWKFetcher func(path string) (*jwk.Set, error)
-	// JWKExtractor is a function that extracts a list of public keys from the received key set
-	JWKExtractor func(keySet *jwk.Set) ([]*rsa.PublicKey, error)
+	// RSAExtractor is a function that extracts a list of public keys from the received key set
+	RSAExtractor func(keySet *jwk.Set) ([]*rsa.PublicKey, error)
 )
 
 // DefaultJWKFetcher implements the JWKFetcher interface. It is able to get JWK from the filesystem and network (http/https)

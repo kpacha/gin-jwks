@@ -19,8 +19,8 @@ type RS256Config struct {
 	JWKPath   string
 	Issuer    string
 	Fetcher   JWKFetcher
-	Extractor JWKExtractor
-	Verifier  JWSVerifier
+	Extractor RSAExtractor
+	Verifier  RSAVerifier
 }
 
 // DefaultRS256Config creates a RS256Config with the default components and the injected jwkPath and issuer
@@ -51,8 +51,8 @@ func NewRS256Verifier(config RS256Config) (Verifier, error) {
 	return Chain(verifiers), nil
 }
 
-// RS256Verifier is a single key varifier over a JWSVerifier
-func RS256Verifier(publicKey *rsa.PublicKey, issuer string, verifier JWSVerifier) Verifier {
+// RS256Verifier is a single key verifier over a RSAVerifier
+func RS256Verifier(publicKey *rsa.PublicKey, issuer string, verifier RSAVerifier) Verifier {
 	return func(tok Token, cs *Claims) error {
 		verified, err := verifier(tok, publicKey)
 		if err != nil {
@@ -63,8 +63,10 @@ func RS256Verifier(publicKey *rsa.PublicKey, issuer string, verifier JWSVerifier
 		if err := claims.UnmarshalJSON(verified); err != nil {
 			return err
 		}
-		if err := claims.Verify(jwt.WithIssuer(issuer)); err != nil {
-			return err
+		if issuer != "" {
+			if err := claims.Verify(jwt.WithIssuer(issuer)); err != nil {
+				return err
+			}
 		}
 		(*cs)["issuer"] = claims.Issuer
 		if claims.NotBefore != nil {

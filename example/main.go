@@ -21,8 +21,8 @@ func main() {
 		return
 	}
 
-	if *issuer == "" {
-		log.Println("Error: an issuer must be defined")
+	if *secret == "" {
+		log.Println("Error: a secret must be defined")
 		return
 	}
 
@@ -31,11 +31,12 @@ func main() {
 		log.Println("Error:", err.Error())
 		return
 	}
+	hmacVerifier := jwks.HS256Verifier([]byte(*secret), *issuer)
 
 	router := gin.Default()
 
 	router.Use(ginjwks.ToHTTPContext())
-	router.Use(ginjwks.Auth(verifier))
+	router.Use(ginjwks.Auth(Chain([]Verifier{verifier, hmacVerifier}))
 
 	router.GET("/", func(c *gin.Context) {
 		t, ok := c.Get(ginjwks.JWTTokenContextKey)
