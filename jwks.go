@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/lestrrat/go-jwx/jwk"
+	"github.com/lestrrat/go-jwx/jwt"
 )
 
 var (
@@ -22,15 +23,15 @@ type (
 	Token []byte
 
 	// Verifier is a function that verifies the received token and stores the verified claims in the passed Claims
-	Verifier func(tok Token, claims *Claims) error
+	Verifier func(Token, *Claims) error
 	// JWSVerifier is a function that verifies the received token
-	JWSVerifier func(tok Token) ([]byte, error)
+	JWSVerifier func(Token) ([]byte, error)
 	// RSAVerifier is a function that verifies the received token against a public key
-	RSAVerifier func(tok Token, publicKey *rsa.PublicKey) ([]byte, error)
+	RSAVerifier func(Token, *rsa.PublicKey) ([]byte, error)
 	// JWKFetcher is a function that fetches the JWK set from the received path
-	JWKFetcher func(path string) (*jwk.Set, error)
+	JWKFetcher func(string) (*jwk.Set, error)
 	// RSAExtractor is a function that extracts a list of public keys from the received key set
-	RSAExtractor func(keySet *jwk.Set) ([]*rsa.PublicKey, error)
+	RSAExtractor func(*jwk.Set) ([]*rsa.PublicKey, error)
 )
 
 // DefaultJWKFetcher implements the JWKFetcher interface. It is able to get JWK from the filesystem and network (http/https)
@@ -48,17 +49,52 @@ func NoopVerifier(_ Token, _ *Claims) error { return nil }
 func ErrorVerifier(_ Token, _ *Claims) error { return ErrUnverifiedMsg }
 
 // Chain is a verifier that chains a set of verifiers, executing them with a FIFO strategy
-func Chain(verifiers []Verifier) Verifier {
-	if len(verifiers) == 0 {
+func Chain(vs []Verifier) Verifier {
+	if len(vs) == 0 {
 		return ErrorVerifier
 	}
 	return func(tok Token, claims *Claims) error {
 		var err error
-		for _, verifier := range verifiers {
-			if err = verifier(tok, claims); err == nil {
+		for _, v := range vs {
+			if err = v(tok, claims); err == nil {
 				return nil
 			}
 		}
 		return err
+	}
+}
+
+func verifier(issuer string, f JWSVerifier) Verifier {
+	return func(tok Token, cs *Claims) error {
+		verified, err := f(tok)
+		if err != nil {
+			return err
+		}
+		claims := jwt.NewClaimSet()
+
+		if err := claims.UnmarshalJSON(verified); err != nil {
+			return err
+		}
+		options := []jwt.VerifyOption{}
+		if issuer != "" {
+			options = append(options, jwt.WithIssuer(issuer))
+		}
+		if err := claims.Verify(options...); err != nil {
+			return err
+		}
+		(*cs)["issuer"] = claims.Issuer
+		if claims.NotBefore != nil {
+			(*cs)["not_before"] = claims.NotBefore.Second()
+		}
+		(*cs)["audience"] = claims.Audience
+		(*cs)["issued_at"] = claims.IssuedAt
+		(*cs)["jwt_id"] = claims.JwtID
+		(*cs)["subject"] = claims.Subject
+		(*cs)["expiration"] = claims.Expiration
+		(*cs)["private"] = claims.PrivateClaims
+		if claims.EssentialClaims != nil {
+			(*cs)["essential"] = map[string]interface{}{"audience": claims.EssentialClaims.Audience}
+		}
+		return nil
 	}
 }

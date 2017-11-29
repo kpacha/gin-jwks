@@ -6,7 +6,6 @@ import (
 	"github.com/lestrrat/go-jwx/jwa"
 	"github.com/lestrrat/go-jwx/jwk"
 	"github.com/lestrrat/go-jwx/jws"
-	"github.com/lestrrat/go-jwx/jwt"
 )
 
 // RS256 is the dafault factory for the RS256 JWK and JWS verifier
@@ -52,37 +51,10 @@ func NewRS256Verifier(config RS256Config) (Verifier, error) {
 }
 
 // RS256Verifier is a single key verifier over a RSAVerifier
-func RS256Verifier(publicKey *rsa.PublicKey, issuer string, verifier RSAVerifier) Verifier {
-	return func(tok Token, cs *Claims) error {
-		verified, err := verifier(tok, publicKey)
-		if err != nil {
-			return err
-		}
-		claims := jwt.NewClaimSet()
-
-		if err := claims.UnmarshalJSON(verified); err != nil {
-			return err
-		}
-		if issuer != "" {
-			if err := claims.Verify(jwt.WithIssuer(issuer)); err != nil {
-				return err
-			}
-		}
-		(*cs)["issuer"] = claims.Issuer
-		if claims.NotBefore != nil {
-			(*cs)["not_before"] = claims.NotBefore.Second()
-		}
-		(*cs)["audience"] = claims.Audience
-		(*cs)["issued_at"] = claims.IssuedAt
-		(*cs)["jwt_id"] = claims.JwtID
-		(*cs)["subject"] = claims.Subject
-		(*cs)["expiration"] = claims.Expiration
-		(*cs)["private"] = claims.PrivateClaims
-		if claims.EssentialClaims != nil {
-			(*cs)["essential"] = map[string]interface{}{"audience": claims.EssentialClaims.Audience}
-		}
-		return nil
-	}
+func RS256Verifier(publicKey *rsa.PublicKey, issuer string, rsaVerifier RSAVerifier) Verifier {
+	return verifier(issuer, func(tok Token) ([]byte, error) {
+		return rsaVerifier(tok, publicKey)
+	})
 }
 
 func rs256Verifier(tok Token, publicKey *rsa.PublicKey) ([]byte, error) {
