@@ -14,13 +14,14 @@ func TestChainVerfier_empty(t *testing.T) {
 }
 
 func TestChainVerfier_ko(t *testing.T) {
+	expectedErrorMsg := "all the chained validators failed: failed to verify message; failed to verify message; failed to verify message; failed to verify message"
 	var counter uint64
 	v := func(tok Token, c *Claims) error {
 		atomic.AddUint64(&counter, 1)
 		return ErrorVerifier(tok, c)
 	}
 	verifier := Chain([]Verifier{v, v, v, ErrorVerifier})
-	if err := verifier([]byte{}, &Claims{}); err != ErrUnverifiedMsg {
+	if err := verifier([]byte{}, &Claims{}); err == nil || err.Error() != expectedErrorMsg {
 		t.Error("unexpected error. got:", err)
 		return
 	}

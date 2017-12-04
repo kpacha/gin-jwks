@@ -166,6 +166,19 @@ func TestRS256Verify_koBadIssuer(t *testing.T) {
 	}
 }
 
+func TestRS256Verify_koExpired(t *testing.T) {
+	payload := []byte(`{"iss":"http://example.com/", "exp": 123456}`)
+	buf, key, err := sign(payload)
+	if err != nil {
+		t.Error("Signature generated. got:", err.Error())
+		return
+	}
+
+	if err := RS256Verifier(key, "http://example.com/", rs256Verifier)(buf, &Claims{}); err == nil {
+		t.Error("Verification error:", err)
+	}
+}
+
 func sign(payload []byte) ([]byte, *rsa.PublicKey, error) {
 	buf := []byte{}
 	key, err := rsa.GenerateKey(rand.Reader, 2048)

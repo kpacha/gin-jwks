@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/lestrrat/go-jwx/jwk"
 	"github.com/lestrrat/go-jwx/jwt"
@@ -54,14 +55,30 @@ func Chain(vs []Verifier) Verifier {
 		return ErrorVerifier
 	}
 	return func(tok Token, claims *Claims) error {
-		var err error
+		err := VerifierError{[]error{}}
 		for _, v := range vs {
-			if err = v(tok, claims); err == nil {
+			errTmp := v(tok, claims)
+			if errTmp == nil {
 				return nil
 			}
+			err.Errors = append(err.Errors, errTmp)
 		}
 		return err
 	}
+}
+
+// VerifierError is the error wrapping all the errors received from the chained verifiers
+type VerifierError struct {
+	Errors []error
+}
+
+// Error implements the error interface
+func (v VerifierError) Error() string {
+	msg := make([]string, len(v.Errors))
+	for k, v := range v.Errors {
+		msg[k] = v.Error()
+	}
+	return "all the chained validators failed: " + strings.Join(msg, "; ")
 }
 
 func verifier(issuer string, f JWSVerifier) Verifier {
