@@ -43,10 +43,15 @@ func NewRS256Verifier(config RS256Config) (Verifier, error) {
 	if err != nil {
 		return NoopVerifier, err
 	}
+
 	verifiers := []Verifier{}
 	for _, key := range keys {
 		verifiers = append(verifiers, RS256Verifier(key, config.Issuer, config.Verifier))
 	}
+	if len(keys) == 1 {
+		return verifiers[0], nil
+	}
+
 	return Chain(verifiers), nil
 }
 

@@ -53,3 +53,16 @@ func TestHS256Verify_koBadIssuer(t *testing.T) {
 		t.Error("Verification error:", err)
 	}
 }
+
+func TestHS256Verify_koExpired(t *testing.T) {
+	payload := []byte(`{"iss":"http://example.com/", "exp": 123456}`)
+	buf, err := jws.Sign(payload, jwa.HS256, []byte("secret"))
+	if err != nil {
+		t.Error("Signature generated. got:", err.Error())
+		return
+	}
+
+	if err = HS256Verifier([]byte("secret"), "http://example.com/")(buf, &Claims{}); err == nil || err.Error() != "exp not satisfied" {
+		t.Error("Verification error:", err)
+	}
+}

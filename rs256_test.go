@@ -174,7 +174,7 @@ func TestRS256Verify_koExpired(t *testing.T) {
 		return
 	}
 
-	if err := RS256Verifier(key, "http://example.com/", rs256Verifier)(buf, &Claims{}); err == nil {
+	if err := RS256Verifier(key, "http://example.com/", rs256Verifier)(buf, &Claims{}); err == nil || err.Error() != "exp not satisfied" {
 		t.Error("Verification error:", err)
 	}
 }
