@@ -16,6 +16,8 @@ var (
 	ErrNoSupportedKeys = fmt.Errorf("the JWK contained no supported keys")
 	// ErrUnverifiedMsg error returned when the JWS verification fails
 	ErrUnverifiedMsg = fmt.Errorf("failed to verify message")
+	// DefaultGroupVerifier sets the gorup verifier implementation to use
+	DefaultGroupVerifier GroupVerifier = Chain
 )
 
 type (
@@ -26,6 +28,8 @@ type (
 
 	// Verifier is a function that verifies the received token and stores the verified claims in the passed Claims
 	Verifier func(Token, *Claims) error
+	// GroupVerifier wraps a set of verifiers in a single one
+	GroupVerifier func([]Verifier) Verifier
 	// JWSVerifier is a function that verifies the received token
 	JWSVerifier func(Token) ([]byte, error)
 	// RSAVerifier is a function that verifies the received token against a public key
@@ -98,7 +102,7 @@ func Concurrent(vs []Verifier) Verifier {
 		}
 
 		err := VerifierError{[]error{}}
-		for _ = range vs {
+		for range vs {
 			result := <-out
 			if result.err == nil {
 				*claims = *result.claims

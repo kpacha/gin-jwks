@@ -48,11 +48,8 @@ func NewRS256Verifier(config RS256Config) (Verifier, error) {
 	for _, key := range keys {
 		verifiers = append(verifiers, RS256Verifier(key, config.Issuer, config.Verifier))
 	}
-	if len(keys) == 1 {
-		return verifiers[0], nil
-	}
 
-	return Chain(verifiers), nil
+	return DefaultGroupVerifier(verifiers), nil
 }
 
 // RS256Verifier is a single key verifier over a RSAVerifier

@@ -28,6 +28,7 @@ func main() {
 		return
 	}
 
+	jwks.DefaultGroupVerifier = jwks.Concurrent
 	rsaVerifier, err := jwks.RS256(*jwkPath, *issuer)
 	if err != nil {
 		log.Println("Error:", err.Error())
@@ -42,7 +43,7 @@ func main() {
 	router := gin.Default()
 
 	router.Use(ginjwks.ToHTTPContext())
-	router.Use(ginjwks.Auth(jwks.Chain(verifiers)))
+	router.Use(ginjwks.Auth(jwks.Concurrent(verifiers)))
 
 	router.GET("/", func(c *gin.Context) {
 		t, ok := c.Get(ginjwks.JWTTokenContextKey)
