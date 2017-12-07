@@ -62,7 +62,7 @@ type VerifyCfg struct {
 // and stores its claims in the request context, using the defined claims key
 func Verify(cfg VerifyCfg) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claims, err := extractVerifiedClaims(c, cfg.TokenExtractor, cfg.Verifier)
+		claims, err := ExtractVerifiedClaims(c, cfg.TokenExtractor, cfg.Verifier)
 		if err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 			return
@@ -98,7 +98,8 @@ func AuthHeaderTokenExtractor(c *gin.Context) (token []byte, ok bool) {
 	return
 }
 
-func extractVerifiedClaims(c *gin.Context, te TokenExtractor, verifier jwks.Verifier) (*jwks.Claims, error) {
+// ExtractVerifiedClaims executes the token extractor and verifies the signature and the basic claims of the token
+func ExtractVerifiedClaims(c *gin.Context, te TokenExtractor, verifier jwks.Verifier) (*jwks.Claims, error) {
 	token, ok := te(c)
 	if !ok {
 		return nil, ErrUnableToExtractToken
