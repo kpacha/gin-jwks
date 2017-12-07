@@ -1,6 +1,7 @@
 package jwks
 
 import (
+	"context"
 	"crypto/rsa"
 	"fmt"
 	"net/url"
@@ -51,9 +52,13 @@ func ErrorVerifier(_ Token, _ *Claims) error { return ErrUnverifiedMsg }
 
 // Chain is a verifier that chains a set of verifiers, executing them with a FIFO strategy
 func Chain(vs []Verifier) Verifier {
-	if len(vs) == 0 {
+	switch len(vs) {
+	case 0:
 		return ErrorVerifier
+	case 1:
+		return vs[0]
 	}
+
 	return func(tok Token, claims *Claims) error {
 		err := VerifierError{[]error{}}
 		for _, v := range vs {
@@ -65,6 +70,49 @@ func Chain(vs []Verifier) Verifier {
 		}
 		return err
 	}
+}
+
+// Concurrent is a verifier that executes a set of verifiers with a concurrently strategy
+func Concurrent(vs []Verifier) Verifier {
+	switch len(vs) {
+	case 0:
+		return ErrorVerifier
+	case 1:
+		return vs[0]
+	}
+
+	return func(tok Token, claims *Claims) error {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		out := make(chan verifierResul, len(vs))
+		for _, v := range vs {
+			go func(tok Token, v Verifier) {
+				claims := &Claims{}
+				err := v(tok, claims)
+				select {
+				case <-ctx.Done():
+				case out <- verifierResul{claims, err}:
+				}
+			}(tok, v)
+		}
+
+		err := VerifierError{[]error{}}
+		for _ = range vs {
+			result := <-out
+			if result.err == nil {
+				*claims = *result.claims
+				return nil
+			}
+			err.Errors = append(err.Errors, result.err)
+		}
+		return err
+	}
+}
+
+type verifierResul struct {
+	claims *Claims
+	err    error
 }
 
 // VerifierError is the error wrapping all the errors received from the chained verifiers

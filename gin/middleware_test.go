@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lestrrat/go-jwx/jwa"
-	"github.com/lestrrat/go-jwx/jws"
 
 	"github.com/kpacha/gin-jwks"
 )
@@ -195,74 +193,5 @@ func TestVerify_noToken(t *testing.T) {
 	if status := rr.Code; status != http.StatusUnauthorized {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusUnauthorized)
-	}
-}
-
-func BenchmarkVerify_okHS256(b *testing.B) {
-	secret := []byte("secret")
-	payload := []byte(`{"iss":"http://example.com/", "exp": 1515606371}`)
-	token, err := jws.Sign(payload, jwa.HS256, secret)
-	if err != nil {
-		b.Error("Signature generated. got:", err.Error())
-		return
-	}
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(Verify(VerifyCfg{
-		Verifier:       jwks.HS256Verifier(secret, "http://example.com/"),
-		ClaimsKey:      "none",
-		TokenExtractor: AuthHeaderTokenExtractor,
-	}))
-	router.GET("/", func(c *gin.Context) {
-		c.Status(200)
-	})
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/", nil)
-		req.Header.Set("Authorization", "bearer "+string(token))
-		router.ServeHTTP(w, req)
-		if w.Result().StatusCode != 200 {
-			b.Error("wrong status code:", w.Result().StatusCode)
-		}
-	}
-}
-
-func BenchmarkVerify_koExpiredHS256(b *testing.B) {
-	secret := []byte("secret")
-	payload := []byte(`{"iss":"http://example.com/", "exp": 1515}`)
-	token, err := jws.Sign(payload, jwa.HS256, secret)
-	if err != nil {
-		b.Error("Signature generated. got:", err.Error())
-		return
-	}
-
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.Use(Verify(VerifyCfg{
-		Verifier:       jwks.HS256Verifier(secret, "http://example.com/"),
-		ClaimsKey:      "none",
-		TokenExtractor: AuthHeaderTokenExtractor,
-	}))
-	router.GET("/", func(c *gin.Context) {
-		b.Error("the handler shouldn't be executed")
-		c.Status(200)
-	})
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/", nil)
-		req.Header.Set("Authorization", "bearer "+string(token))
-		router.ServeHTTP(w, req)
-		if w.Result().StatusCode == 200 {
-			b.Error("wrong status code:", w.Result().StatusCode)
-		}
 	}
 }
