@@ -67,6 +67,7 @@ func extractRS256PublickKeys(keySet *jwk.Set) ([]*rsa.PublicKey, error) {
 		return keys, ErrNoSupportedKeys
 	}
 	for _, k := range keySet.Keys {
+		k.Use()
 		if k.Alg() == string(jwa.RS256) {
 			var publickey *rsa.PublicKey
 			v, err := k.Materialize()

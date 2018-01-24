@@ -85,33 +85,43 @@ func verifier(issuer string, f JWSVerifier) Verifier {
 	return func(tok Token, cs *Claims) error {
 		verified, err := f(tok)
 		if err != nil {
-			return err
+			return fmt.Errorf("Verifying token signature: %s", err.Error())
 		}
-		claims := jwt.NewClaimSet()
 
-		if err := claims.UnmarshalJSON(verified); err != nil {
-			return err
-		}
-		options := []jwt.VerifyOption{}
-		if issuer != "" {
-			options = append(options, jwt.WithIssuer(issuer))
-		}
-		if err := claims.Verify(options...); err != nil {
-			return err
-		}
-		(*cs)["issuer"] = claims.Issuer
-		if claims.NotBefore != nil {
-			(*cs)["not_before"] = claims.NotBefore.Second()
-		}
-		(*cs)["audience"] = claims.Audience
-		(*cs)["issued_at"] = claims.IssuedAt
-		(*cs)["jwt_id"] = claims.JwtID
-		(*cs)["subject"] = claims.Subject
-		(*cs)["expiration"] = claims.Expiration
-		(*cs)["private"] = claims.PrivateClaims
-		if claims.EssentialClaims != nil {
-			(*cs)["essential"] = map[string]interface{}{"audience": claims.EssentialClaims.Audience}
-		}
-		return nil
+		tmp, err := NewClaims(verified, []jwt.VerifyOption{jwt.WithIssuer(issuer)})
+		*cs = *tmp
+
+		return err
 	}
+}
+
+func NewClaims(tok []byte, options []jwt.VerifyOption) (cs *Claims, err error) {
+	claims := jwt.NewClaimSet()
+
+	if err = claims.UnmarshalJSON(tok); err != nil {
+		return nil, fmt.Errorf("Unmarshalling claims: %s", err.Error())
+	}
+	if len(options) == 0 {
+		err = claims.Verify()
+	}  else {
+		err = claims.Verify(options...)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Verifying claims: %s", err.Error())
+	}
+	cs = &Claims{}
+	(*cs)["issuer"] = claims.Issuer
+	if claims.NotBefore != nil {
+		(*cs)["not_before"] = claims.NotBefore.Second()
+	}
+	(*cs)["audience"] = claims.Audience
+	(*cs)["issued_at"] = claims.IssuedAt
+	(*cs)["jwt_id"] = claims.JwtID
+	(*cs)["subject"] = claims.Subject
+	(*cs)["expiration"] = claims.Expiration
+	(*cs)["private"] = claims.PrivateClaims
+	if claims.EssentialClaims != nil {
+		(*cs)["essential"] = map[string]interface{}{"audience": claims.EssentialClaims.Audience}
+	}
+	return
 }
