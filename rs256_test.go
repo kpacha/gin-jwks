@@ -148,7 +148,9 @@ func TestRS256Verify_ko(t *testing.T) {
 		return []byte{}, expectedErr
 	}
 
-	if err := RS256Verifier(key, "http://example.com/", verifier)(buf, &Claims{}); err != expectedErr {
+	if err := RS256Verifier(key, "http://example.com/", verifier)(buf, &Claims{}); err == nil {
+		t.Errorf("Expecting error")
+	} else if err.Error() != "Verifying token signature: booom" {
 		t.Error("Verification error. got:", err)
 	}
 }
@@ -174,7 +176,7 @@ func TestRS256Verify_koExpired(t *testing.T) {
 		return
 	}
 
-	if err := RS256Verifier(key, "http://example.com/", rs256Verifier)(buf, &Claims{}); err == nil || err.Error() != "exp not satisfied" {
+	if err := RS256Verifier(key, "http://example.com/", rs256Verifier)(buf, &Claims{}); err == nil || err.Error() != "Verifying claims: exp not satisfied" {
 		t.Error("Verification error:", err)
 	}
 }

@@ -141,8 +141,11 @@ func verifier(issuer string, f JWSVerifier) Verifier {
 		}
 
 		tmp, err := NewClaims(verified, []jwt.VerifyOption{jwt.WithIssuer(issuer)})
-		*cs = *tmp
+		if err != nil && tmp == nil {
+			return err
+		}
 
+		*cs = *tmp
 		return err
 	}
 }
