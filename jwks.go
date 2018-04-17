@@ -151,18 +151,18 @@ func verifier(issuer string, f JWSVerifier) Verifier {
 		if err := claims.Verify(options...); err != nil {
 			return err
 		}
-		(*cs)["issuer"] = claims.Issuer
+		(*cs)["iss"] = claims.Issuer
 		if claims.NotBefore != nil {
-			(*cs)["not_before"] = claims.NotBefore.Second()
+			(*cs)["nbf"] = claims.NotBefore.Second()
 		}
-		(*cs)["audience"] = claims.Audience
-		(*cs)["issued_at"] = claims.IssuedAt
-		(*cs)["jwt_id"] = claims.JwtID
-		(*cs)["subject"] = claims.Subject
-		(*cs)["expiration"] = claims.Expiration
+		(*cs)["aud"] = claims.Audience
+		(*cs)["iat"] = claims.IssuedAt
+		(*cs)["jti"] = claims.JwtID
+		(*cs)["sub"] = claims.Subject
+		(*cs)["exp"] = claims.Expiration
 		(*cs)["private"] = claims.PrivateClaims
 		if claims.EssentialClaims != nil {
-			(*cs)["essential"] = map[string]interface{}{"audience": claims.EssentialClaims.Audience}
+			(*cs)["essential"] = claims.EssentialClaims
 		}
 		return nil
 	}
