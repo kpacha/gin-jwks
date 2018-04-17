@@ -62,7 +62,7 @@ func TestHS256Verify_koExpired(t *testing.T) {
 		return
 	}
 
-	if err = HS256Verifier([]byte("secret"), "http://example.com/")(buf, &Claims{}); err == nil || err.Error() != "exp not satisfied" {
+	if err = HS256Verifier([]byte("secret"), "http://example.com/")(buf, &Claims{}); err == nil || err.Error() != "Verifying claims: exp not satisfied" {
 		t.Error("Verification error:", err)
 	}
 }
