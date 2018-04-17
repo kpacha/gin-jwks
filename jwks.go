@@ -165,18 +165,18 @@ func NewClaims(tok []byte, options []jwt.VerifyOption) (cs *Claims, err error) {
 		return nil, fmt.Errorf("Verifying claims: %s", err.Error())
 	}
 	cs = &Claims{}
-	(*cs)["issuer"] = claims.Issuer
+	(*cs)["iss"] = claims.Issuer
 	if claims.NotBefore != nil {
-		(*cs)["not_before"] = claims.NotBefore.Second()
+		(*cs)["nbf"] = claims.NotBefore.Unix()
 	}
-	(*cs)["audience"] = claims.Audience
-	(*cs)["issued_at"] = claims.IssuedAt
-	(*cs)["jwt_id"] = claims.JwtID
-	(*cs)["subject"] = claims.Subject
-	(*cs)["expiration"] = claims.Expiration
+	(*cs)["aud"] = claims.Audience
+	(*cs)["iat"] = claims.IssuedAt
+	(*cs)["jti"] = claims.JwtID
+	(*cs)["sub"] = claims.Subject
+	(*cs)["exp"] = claims.Expiration
 	(*cs)["private"] = claims.PrivateClaims
 	if claims.EssentialClaims != nil {
-		(*cs)["essential"] = map[string]interface{}{"audience": claims.EssentialClaims.Audience}
+		(*cs)["essential"] = claims.EssentialClaims
 	}
 	return
 }
